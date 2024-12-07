@@ -55,3 +55,12 @@ declare type UpdateAppointmentParams = {
   appointment: Appointment;
   type: string;
 };
+
+declare type CancelAppointmentParams = {
+  appointmentId: string;
+  userId: string;
+  timeZone: string;
+  cancellationReason: string;
+  schedule: string; // Replace with 'Date' if the schedule is a Date object
+  primaryPhysician: string;
+};

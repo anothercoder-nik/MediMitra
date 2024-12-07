@@ -3,7 +3,6 @@
 import { revalidatePath } from "next/cache";
 import { ID, Query } from "node-appwrite";
 
-import { Appointment } from "@/types/appwrite.types";
 
 import {
   APPOINTMENT_COLLECTION_ID,
@@ -12,6 +11,8 @@ import {
   messaging,
 } from "../appwrite.config";
 import { formatDateTime, parseStringify } from "../utils";
+
+import { Appointment } from "@/types/appwrite.types";
 
 //  CREATE APPOINTMENT
 export const createAppointment = async (
@@ -52,7 +53,7 @@ export const getRecentAppointmentList = async () => {
     // const cancelledAppointments = (
     //   appointments.documents as Appointment[]
     // ).filter((appointment) => appointment.status === "cancelled");
-
+    
     // const data = {
     //   totalCount: appointments.total,
     //   scheduledCount: scheduledAppointments.length,
@@ -113,6 +114,40 @@ export const sendSMSNotification = async (userId: string, content: string) => {
     return parseStringify(message);
   } catch (error) {
     console.error("An error occurred while sending sms:", error);
+  }
+};
+
+
+export const cancelAppointment = async ({
+  appointmentId,
+  userId,
+  timeZone,
+  cancellationReason,
+  schedule,
+  primaryPhysician,
+}: CancelAppointmentParams) => {
+  try {
+    // Update appointment status to 'cancelled' and add the cancellation reason
+    const updatedAppointment = await databases.updateDocument(
+      DATABASE_ID!,
+      APPOINTMENT_COLLECTION_ID!,
+      appointmentId,
+      {
+        status: "cancelled",
+        cancellationReason,
+      }
+    );
+
+    if (!updatedAppointment) throw Error;
+
+    // Send SMS notification to the user
+    const smsMessage = `Greetings from CarePulse. We regret to inform you that your appointment scheduled for ${schedule} with Dr. ${primaryPhysician} is cancelled. Reason: ${cancellationReason}.`;
+    await sendSMSNotification(userId, smsMessage);
+
+    revalidatePath("/admin");
+    return parseStringify(updatedAppointment);
+  } catch (error) {
+    console.error("An error occurred while cancelling the appointment:", error);
   }
 };
 
